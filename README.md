@@ -1,36 +1,32 @@
-# ghosthire-detector
+# GhostHire Detector
 
-- ghosthire-detector/
-- │
-- ├── data/
-- │   ├── raw/                # Scraped job posts
-- │   ├── processed/          # Cleaned & feature-ready data
-- │   └── samples/            # Safe demo datasets
-- │
-- ├── scraper/
-- │   ├── __init__.py
-- │   ├── job_scraper.py
-- │   └── validators.py
-- │
-- ├── analyzer/
-- │   ├── __init__.py
-- │   ├── text_features.py    # NLP features
-- │   ├── fraud_rules.py      # Heuristic rules
-- │   ├── ml_model.py         # ML-based scoring
-- │   └── scorer.py           # Final risk score
-- │
-- ├── api/
-- │   ├── main.py             # FastAPI app
-- │   └── schemas.py
-- │
-- ├── tests/
-- │   ├── test_rules.py
-- │   ├── test_scorer.py
-- │
-- ├── notebooks/
-- │   └── exploration.ipynb   # Feature research
-- │
-- ├── .gitignore
-- ├── requirements.txt
-- ├── README.md
-- └── LICENSE
+GhostHire Detector identifies potentially fake or scam job postings using a transparent, rule-based approach.
+
+It analyzes job description text and flags common fraud patterns, returning both a risk score and clear reasons for why a posting may be suspicious.
+
+---
+
+## Current Features
+
+- Rule-based fraud detection engine
+- Detects:
+  - Urgent or pressure-driven hiring language
+  - Unrealistic salary claims without experience requirements
+  - Use of generic email providers (e.g. Gmail)
+- Produces:
+  - Fraud risk score (0.0 – 1.0)
+  - Human-readable reasons for each triggered rule
+
+---
+
+## How It Works
+
+1. Job description text is normalized
+2. Independent fraud rules are applied
+3. Each rule contributes a weighted score
+4. Final score is capped at `1.0`
+5. Reasons are returned alongside the score
+
+---
+
+## Project Structure (Current)
