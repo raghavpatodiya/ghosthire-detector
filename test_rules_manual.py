@@ -1,4 +1,4 @@
-from analyzer.fraud_rules import run_all_rules
+from backend.analyzer.fraud_rules import run_all_rules
 
 job_text = """
 Urgent hiring! Join immediately.
