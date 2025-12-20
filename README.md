@@ -20,4 +20,29 @@ It exposes a lightweight **Flask API** consumed by a **React UI**, keeping fraud
 
 ---
 
-## Architecture
+## Backend Setup (Flask API)
+
+Fresh run from scratch:
+
+cd backend  
+python3 -m venv venv  
+source venv/bin/activate  
+pip install flask flask-cors  
+pip freeze > requirements.txt  
+python app.py  
+
+Backend runs at: http://127.0.0.1:5000
+
+---
+
+## Frontend Setup (React UI)
+
+cd frontend/ghosthire-ui  
+npm install  
+npm start  
+
+Frontend runs at: http://localhost:3000
+
+The React UI sends job description text to the Flask backend and displays the fraud risk score and reasons.
+
+---
