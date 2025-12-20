@@ -1,0 +1,1 @@
+# ghosthire-detector
