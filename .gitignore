@@ -18,4 +18,4 @@ __pycache__/
 *.log
 
 structure.txt
-test_rules_manual.txt
+test_data.txt
