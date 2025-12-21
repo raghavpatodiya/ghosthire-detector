@@ -25,7 +25,15 @@ function App() {
         body: JSON.stringify({ job_text: jobText })
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        setLoading(false);
+        setError("Invalid response from server");
+        return;
+      }
+
       setLoading(false);
 
       if (!response.ok) {
@@ -33,18 +41,27 @@ function App() {
       } else {
         setResult(data);
       }
-    } catch {
+    } catch (error) {
       setLoading(false);
       setError("Backend not reachable");
     }
   };
 
+  const skills = result?.insights?.skills?.skills_found || [];
+
+  const riskLabel =
+    result?.rule_score > 0.7
+      ? "HIGH RISK"
+      : result?.rule_score > 0.4
+      ? "MEDIUM RISK"
+      : "LOW RISK";
+
   const riskClass =
     result?.rule_score > 0.7
-      ? "status-high"
+      ? "risk-high"
       : result?.rule_score > 0.4
-      ? "status-medium"
-      : "status-low";
+      ? "risk-medium"
+      : "risk-low";
 
   return (
     <div className="app">
@@ -70,19 +87,28 @@ function App() {
 
       {result && (
         <div className="result">
-          <p className={riskClass}>
-            {result.rule_score > 0.7
-              ? "HIGH RISK"
-              : result.rule_score > 0.4
-              ? "MEDIUM RISK"
-              : "LOW RISK"}
-          </p>
+          <span className={`status-chip ${riskClass}`}>
+            {riskLabel}
+          </span>
 
           <ul>
-            {result.reasons.map((r, i) => (
+            {(result.reasons || []).map((r, i) => (
               <li key={i}>{r}</li>
             ))}
           </ul>
+
+          {skills.length > 0 && (
+            <>
+              <h4>Skills Detected</h4>
+              <div className="skills">
+                {skills.map((skill, i) => (
+                  <span key={i} className="skill-chip">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
