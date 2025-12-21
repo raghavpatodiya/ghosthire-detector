@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-from analyzer.fraud_rules import run_all_rules
+from analyzer.analysis_engine import run_all_rules
 
 app = Flask(__name__)
 CORS(app)  # allow React frontend calls
