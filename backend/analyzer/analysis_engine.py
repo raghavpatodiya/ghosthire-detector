@@ -1,5 +1,5 @@
 """
-fraud_rules.py
+analysis_engine.py
 
 Orchestrates fraud detection rules
 and additional JD insights.
@@ -26,6 +26,19 @@ from analyzer.insights.skill_extractor import extract_skills
 
 
 def run_all_rules(job_text: str) -> Dict:
+    """
+    Runs fraud detection rules and insights on normalized job text.
+    Assumes input is already cleaned and ready for analysis.
+    """
+    if not job_text:
+        return {
+            "rule_score": 0.0,
+            "reasons": [],
+            "insights": {
+                "skills": {"skills_found": [], "skill_count": 0}
+            }
+        }
+
     rules = [
         urgent_language_rule,
         urgency_density_rule,
@@ -51,8 +64,8 @@ def run_all_rules(job_text: str) -> Dict:
 
             if result.get("reason"):
                 reasons.append(result["reason"])
-
         except Exception:
+            # rule failure must never break analysis
             continue
 
     # positive insight extraction
