@@ -1,20 +1,19 @@
 import { useState } from "react";
 import "./App.css";
 
+import LandingOptions from "./components/LandingOptions";
+import JDTextInput from "./components/JDTextInput";
+import JDUrlInput from "./components/JDUrlInput";
+
 function App() {
-  const [jobText, setJobText] = useState("");
+  const [inputMode, setInputMode] = useState(null); // null | "text" | "url"
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const analyzeJob = async () => {
+  const analyzeJob = async (payload) => {
     setError("");
     setResult(null);
-
-    if (!jobText.trim()) {
-      setError("Please enter job description");
-      return;
-    }
 
     try {
       setLoading(true);
@@ -22,13 +21,13 @@ function App() {
       const response = await fetch("http://127.0.0.1:5000/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ job_text: jobText })
+        body: JSON.stringify(payload)
       });
 
       let data;
       try {
         data = await response.json();
-      } catch (jsonError) {
+      } catch {
         setLoading(false);
         setError("Invalid response from server");
         return;
@@ -41,7 +40,7 @@ function App() {
       } else {
         setResult(data);
       }
-    } catch (error) {
+    } catch {
       setLoading(false);
       setError("Backend not reachable");
     }
@@ -67,23 +66,38 @@ function App() {
     <div className="app">
       <h2>GhostHire Detector</h2>
 
-      <textarea
-        rows="12"
-        placeholder="Paste job description here..."
-        value={jobText}
-        onChange={(e) => setJobText(e.target.value)}
-      />
+      {inputMode !== null && (
+        <button
+          style={{ alignSelf: "flex-start", marginBottom: "20px" }}
+          onClick={() => {
+            setInputMode(null);
+            setResult(null);
+            setError("");
+          }}
+        >
+          ← Change input method
+        </button>
+      )}
 
-      <p className={`counter ${jobText.length < 50 ? "warn" : ""}`}>
-        {jobText.length} characters
-        {jobText.length < 50 && " (too short to analyze properly)"}
-      </p>
+      {inputMode === null && (
+        <LandingOptions onSelect={setInputMode} />
+      )}
 
-      <button onClick={analyzeJob} disabled={loading}>
-        {loading ? "Analyzing..." : "Analyze"}
-      </button>
+      {inputMode === "text" && (
+        <JDTextInput
+          onAnalyze={analyzeJob}
+          loading={loading}
+          error={error}
+        />
+      )}
 
-      {error && <p className="error">{error}</p>}
+      {inputMode === "url" && (
+        <JDUrlInput
+          onAnalyze={analyzeJob}
+          loading={loading}
+          error={error}
+        />
+      )}
 
       {result && (
         <div className="result">
