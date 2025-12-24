@@ -1,43 +1,86 @@
 import re
-from typing import Dict, List
+from typing import Dict, List, Set
 
 
-COMMON_SKILLS = [
+# Canonical skill → aliases
+SKILL_MAP = {
     # languages
-    "python", "java", "javascript", "typescript", "c++", "c#", "go", "rust",
+    "python": ["python"],
+    "java": ["java"],
+    "javascript": ["javascript", "js"],
+    "typescript": ["typescript", "ts"],
+    "c++": ["c++"],
+    "c#": ["c#", "c sharp"],
+    "go": ["go", "golang"],
+    "rust": ["rust"],
 
     # frameworks / libs
-    "react", "angular", "vue", "spring", "spring boot", "django", "flask",
-    "node", "express",
+    "react": ["react", "reactjs"],
+    "angular": ["angular", "angularjs"],
+    "vue": ["vue", "vuejs"],
+    "spring": ["spring"],
+    "spring boot": ["spring boot"],
+    "django": ["django"],
+    "flask": ["flask"],
+    "node": ["node", "nodejs"],
+    "express": ["express"],
 
     # data / backend
-    "sql", "postgresql", "mysql", "mongodb", "redis", "kafka",
+    "sql": ["sql"],
+    "postgresql": ["postgresql", "postgres"],
+    "mysql": ["mysql"],
+    "mongodb": ["mongodb", "mongo"],
+    "redis": ["redis"],
+    "kafka": ["kafka"],
 
     # cloud / devops
-    "aws", "azure", "gcp", "docker", "kubernetes", "ci/cd", "jenkins",
+    "aws": ["aws", "amazon web services"],
+    "azure": ["azure"],
+    "gcp": ["gcp", "google cloud"],
+    "docker": ["docker"],
+    "kubernetes": ["kubernetes", "k8s"],
+    "ci/cd": ["ci/cd", "ci cd", "continuous integration"],
 
     # testing / tools
-    "selenium", "jmeter", "pytest", "junit",
+    "selenium": ["selenium"],
+    "jmeter": ["jmeter"],
+    "pytest": ["pytest"],
+    "junit": ["junit"],
 
-    # misc
-    "rest", "microservices", "linux", "git"
-]
+    # architecture / misc
+    "rest": ["rest", "restful"],
+    "microservices": ["microservices", "microservice"],
+    "linux": ["linux"],
+    "git": ["git"]
+}
+
+
+def _normalize_text(text: str) -> str:
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9+#/ ]", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return f" {text} "
 
 
 def extract_skills(job_text: str) -> Dict:
     """
-    Extracts required skills/keywords from a job description.
-    This is a positive insight feature (no scoring).
+    Extracts skills and technologies from a job description.
+    Deterministic, alias-aware, and false-positive resistant.
     """
-    text = job_text.lower()
-    found_skills: List[str] = []
+    if not job_text:
+        return {"skills_found": [], "skill_count": 0}
 
-    for skill in COMMON_SKILLS:
-        pattern = r"\b" + re.escape(skill) + r"\b"
-        if re.search(pattern, text):
-            found_skills.append(skill)
+    text = _normalize_text(job_text)
+    found: Set[str] = set()
+
+    for canonical_skill, aliases in SKILL_MAP.items():
+        for alias in aliases:
+            pattern = f" {re.escape(alias)} "
+            if pattern in text:
+                found.add(canonical_skill)
+                break
 
     return {
-        "skills_found": sorted(set(found_skills)),
-        "skill_count": len(set(found_skills))
+        "skills_found": sorted(found),
+        "skill_count": len(found)
     }
