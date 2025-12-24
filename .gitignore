@@ -22,3 +22,5 @@ test_data.txt
 sample-jd.html
 
 backend/.coverage
+
+backend/debug/*

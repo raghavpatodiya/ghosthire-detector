@@ -9,6 +9,11 @@ from analyzer.ingestion.normalizer import normalize_job_description
 app = Flask(__name__)
 CORS(app)  # allow React frontend calls
 
+# ===== Debug raw JD dump config =====
+DEBUG_DUMP_RAW_JD = True
+DEBUG_RAW_JD_PATH = "debug/raw_jd.txt"
+# ===================================
+
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -17,11 +22,21 @@ def analyze():
     job_text = (data.get("job_text") or "").strip()
     job_url = (data.get("job_url") or "").strip()
 
-    # Case 1: job text provided
+    # -------- Case 1: JD pasted directly --------
     if job_text:
-        return jsonify(run_all_rules(job_text))
+        raw_jd_text = job_text
 
-    # Case 2: job URL provided
+        if DEBUG_DUMP_RAW_JD:
+            try:
+                with open(DEBUG_RAW_JD_PATH, "w", encoding="utf-8") as f:
+                    f.write(raw_jd_text)
+            except Exception:
+                pass
+
+        # parsing layer will be plugged in here later
+        return jsonify(run_all_rules(raw_jd_text))
+
+    # -------- Case 2: JD fetched via URL --------
     if job_url:
         try:
             html = fetch_url_content(job_url)
@@ -33,14 +48,24 @@ def analyze():
                     "error": "Unable to extract job description from the provided URL"
                 }), 400
 
-            return jsonify(run_all_rules(normalized_text))
+            raw_jd_text = normalized_text
+
+            if DEBUG_DUMP_RAW_JD:
+                try:
+                    with open(DEBUG_RAW_JD_PATH, "w", encoding="utf-8") as f:
+                        f.write(raw_jd_text)
+                except Exception:
+                    pass
+
+            # parsing layer will be plugged in here later
+            return jsonify(run_all_rules(raw_jd_text))
 
         except Exception as e:
             return jsonify({
                 "error": str(e)
             }), 400
 
-    # Case 3: nothing provided
+    # -------- Case 3: Invalid input --------
     return jsonify({
         "error": "Either job_text or job_url is required"
     }), 400
