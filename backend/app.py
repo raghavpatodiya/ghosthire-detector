@@ -90,8 +90,12 @@ def analyze():
 @app.route("/loc", methods=["GET"])
 def loc_count():
     try:
-        backend_path = os.path.join(os.getcwd(), ".")
-        frontend_path = os.path.join(os.getcwd(), "../frontend/ghosthire-ui")
+        # Use __file__ to get paths relative to app.py location, not cwd
+        backend_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(backend_dir)
+        
+        backend_path = backend_dir
+        frontend_path = os.path.join(project_root, "frontend", "ghosthire-ui")
 
         backend_loc = count_loc(backend_path)
         frontend_loc = count_loc(frontend_path)
