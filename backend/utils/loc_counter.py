@@ -10,6 +10,10 @@ VALID_EXTENSIONS = {".py", ".js", ".jsx", ".ts", ".tsx", ".css", ".html"}
 def count_loc(base_path):
     total = 0
 
+    # Check if path exists before walking to avoid FileNotFoundError
+    if not os.path.exists(base_path):
+        return 0
+
     for root, dirs, files in os.walk(base_path):
         dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
 
