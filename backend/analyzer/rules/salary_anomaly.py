@@ -15,9 +15,9 @@ def unrealistic_salary_rule(jd_context: JDContext) -> Dict:
     text = (jd_context.raw_text or "").lower()
 
     # --- Structured salary signal (preferred if available) ---
+    salary_raw_text = (jd_context.salary.raw_text or "") if jd_context.salary else ""
     salary_text_sources = [
-        jd_context.compensation.salary_text or "",
-        jd_context.compensation.additional_notes or "",
+        salary_raw_text,
         text
     ]
     combined_salary_text = " ".join(salary_text_sources)
