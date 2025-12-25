@@ -5,6 +5,7 @@ from analyzer.analysis_engine import run_all_rules
 from analyzer.ingestion.url_fetcher import fetch_url_content
 from analyzer.ingestion.jd_extractor import extract_job_description
 from analyzer.ingestion.normalizer import normalize_job_description
+from analyzer.parsing.jd_parser import parse_jd
 
 app = Flask(__name__)
 CORS(app)  # allow React frontend calls
@@ -33,8 +34,14 @@ def analyze():
             except Exception:
                 pass
 
-        # parsing layer will be plugged in here later
-        return jsonify(run_all_rules(raw_jd_text))
+        jd_context = parse_jd(raw_jd_text)
+
+        if jd_context is None:
+            return jsonify({
+                "error": "Failed to parse job description"
+            }), 400
+
+        return jsonify(run_all_rules(jd_context))
 
     # -------- Case 2: JD fetched via URL --------
     if job_url:
@@ -57,8 +64,14 @@ def analyze():
                 except Exception:
                     pass
 
-            # parsing layer will be plugged in here later
-            return jsonify(run_all_rules(raw_jd_text))
+            jd_context = parse_jd(raw_jd_text)
+
+            if jd_context is None:
+                return jsonify({
+                    "error": "Failed to parse extracted job description"
+                }), 400
+
+            return jsonify(run_all_rules(jd_context))
 
         except Exception as e:
             return jsonify({
