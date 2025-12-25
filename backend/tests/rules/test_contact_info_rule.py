@@ -43,9 +43,9 @@ def test_flags_yahoo_outlook_generic_domains():
 
 def test_company_domain_should_not_flag():
     ctx = make_ctx(
-    text="Contact hr@testcorp.com",
-    emails=["hr@testcorp.com"]
-)
+        text="Contact hr@testcorp.com",
+        emails=["hr@testcorp.com"]
+    )
 
     result = contact_info_rule(ctx)
 
