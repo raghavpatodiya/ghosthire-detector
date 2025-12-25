@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 
 import LandingOptions from "./components/LandingOptions";
 import JDTextInput from "./components/JDTextInput";
 import JDUrlInput from "./components/JDUrlInput";
+import Odometer from "./components/Odometer";
 
 function App() {
   const [inputMode, setInputMode] = useState(null); // null | "text" | "url"
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [locData, setLocData] = useState({ backend_loc: 0, frontend_loc: 0, total_loc: 0 });
 
   const analyzeJob = async (payload) => {
     setError("");
@@ -46,6 +48,24 @@ function App() {
     }
   };
 
+  const fetchLoc = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:5000/loc");
+      const data = await res.json();
+      if (res.ok) {
+        setLocData(data);
+      }
+    } catch (e) {
+      // silently fail — odometer is non-critical
+    }
+  };
+
+  useEffect(() => {
+    fetchLoc();                 // initial load
+    const interval = setInterval(fetchLoc, 10000); // every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   const skills = result?.insights?.skills?.skills_found || [];
 
   const riskLabel =
@@ -65,6 +85,11 @@ function App() {
   return (
     <div className="app">
       <h2>GhostHire Detector</h2>
+      <p style={{ opacity: 0.7, marginTop: "4px" }}>
+        1 LOC at a time to improve it — currently at...
+      </p>
+      <Odometer value={locData.total_loc} />
+      
 
       {inputMode !== null && (
         <button

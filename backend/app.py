@@ -6,6 +6,8 @@ from analyzer.ingestion.url_fetcher import fetch_url_content
 from analyzer.ingestion.jd_extractor import extract_job_description
 from analyzer.ingestion.normalizer import normalize_job_description
 from analyzer.parsing.jd_parser import parse_jd
+import os
+from utils.loc_counter import count_loc
 
 app = Flask(__name__)
 CORS(app)  # allow React frontend calls
@@ -79,10 +81,29 @@ def analyze():
             }), 400
 
     # -------- Case 3: Invalid input --------
+
     return jsonify({
         "error": "Either job_text or job_url is required"
     }), 400
 
+
+@app.route("/loc", methods=["GET"])
+def loc_count():
+    try:
+        backend_path = os.path.join(os.getcwd(), ".")
+        frontend_path = os.path.join(os.getcwd(), "../frontend/ghosthire-ui")
+
+        backend_loc = count_loc(backend_path)
+        frontend_loc = count_loc(frontend_path)
+
+        return jsonify({
+            "backend_loc": backend_loc,
+            "frontend_loc": frontend_loc,
+            "total_loc": backend_loc + frontend_loc
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
