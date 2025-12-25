@@ -10,7 +10,13 @@ import os
 from utils.loc_counter import count_loc
 
 app = Flask(__name__)
-CORS(app)  # allow React frontend calls
+CORS(
+    app,
+    resources={r"/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"]}},
+    supports_credentials=True,
+    allow_headers=["Content-Type"],
+    methods=["GET", "POST", "OPTIONS"]
+)
 
 # ===== Debug raw JD dump config =====
 DEBUG_DUMP_RAW_JD = True
@@ -18,8 +24,11 @@ DEBUG_RAW_JD_PATH = "debug/raw_jd.txt"
 # ===================================
 
 
-@app.route("/analyze", methods=["POST"])
+@app.route("/analyze", methods=["POST", "OPTIONS"])
 def analyze():
+    if request.method == "OPTIONS":
+        return "", 200
+
     data = request.get_json(silent=True) or {}
 
     job_text = (data.get("job_text") or "").strip()

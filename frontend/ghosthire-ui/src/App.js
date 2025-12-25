@@ -17,13 +17,28 @@ function App() {
     setError("");
     setResult(null);
 
+    // Normalize payload for backend
+    const body = {};
+
+    if (payload?.job_text) body.job_text = payload.job_text;
+    if (payload?.job_url) body.job_url = payload.job_url;
+
+    // Fallback support for { text, url }
+    if (payload?.text) body.job_text = payload.text;
+    if (payload?.url) body.job_url = payload.url;
+
+    if (!body.job_text && !body.job_url) {
+      setError("Please provide job description or URL");
+      return;
+    }
+
     try {
       setLoading(true);
 
       const response = await fetch("http://127.0.0.1:5000/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(body),
       });
 
       let data;
