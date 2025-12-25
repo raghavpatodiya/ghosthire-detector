@@ -17,15 +17,19 @@ Client (React)
   ↓
 API Layer (Flask)
   ↓
-Ingestion Pipeline (optional)
+Ingestion Layer (optional: URL → HTML → Text)
+  ↓
+Parsing Layer (raw JD → JDContext)
   ↓
 Analysis Engine
-  ├── Fraud Rules
+  ├── Fraud Rules (JDContext-only)
   └── Insights
 ```
 
 The backend is the source of truth.  
 The frontend is a stateless consumer of API responses.
+
+The backend processes ALL job descriptions into a structured JDContext before analysis. No rule runs on raw text anymore.
 
 ---
 
@@ -36,32 +40,31 @@ The frontend is a stateless consumer of API responses.
 - Independent, failure-tolerant rules
 - Deterministic and explainable outputs
 
-Implemented fraud signals:
-- Urgent / pressure-driven language
-- Salary anomalies
-- Generic contact information
-- Missing or vague company identity
-- Over-promising language
-- Suspicious application flow
-- Generic job titles
-- Role–salary mismatch
-- Linguistic inconsistency
-- Reused / copy-pasted job descriptions
-- Missing hiring process details
+Implemented fraud signals (via JDContext structured analysis):
+- Urgent / pressure-driven hiring signals
 - Urgency density anomalies
+- Unrealistic salary or salary–experience mismatch
+- Role–salary inconsistency
+- Missing or vague company identity
+- Generic / suspicious contact channels
+- Over-promising language & guaranteed placement claims
+- Suspicious / shortcut hiring process
+- Generic or scam-pattern job titles
+- Linguistic inconsistency & tone anomalies
+- Reused / duplicated / template job descriptions
 
 ---
 
 ### Insights (Non-Scoring)
-- Skill and keyword extraction from job descriptions
-- Returned as structured metadata
-- Does not influence fraud score
+Structured insights are extracted independently of fraud scoring. Currently implemented:
+- Skill / technology extraction
+Returned as structured metadata and does not influence fraud risk score.
 
 ---
 
 ### Supported Inputs
-- Raw job description text
-- Job posting URL (server-side ingestion)
+- Raw job description text (pasted by user)
+- Public job posting URL (server ingestion → scrape → extract → normalize → parse)
 
 ---
 
@@ -71,14 +74,19 @@ Implemented fraud signals:
 backend/
 ├── app.py                     # API entry point
 ├── analyzer/
-│   ├── analysis_engine.py     # Orchestrates rules and insights
-│   ├── rules/                 # Individual fraud rules
-│   ├── insights/              # Non-fraud signal extractors
-│   └── ingestion/             # URL → text pipeline
-│       ├── url_fetcher.py
-│       ├── jd_extractor.py
-│       └── normalizer.py
-├── tests/                     # pytest-based test suite
+│   ├── analysis_engine.py     # Orchestrates rules + insights (JDContext only)
+│   ├── rules/                 # Individual fraud rules (fault-tolerant)
+│   ├── insights/              # Non-fraud analysis
+│   ├── ingestion/             # URL → HTML → JD text
+│   │   ├── url_fetcher.py
+│   │   ├── jd_extractor.py
+│   │   └── normalizer.py
+│   └── parsing/
+│       ├── jd_parser.py       # Converts text → JDContext
+│       └── schema.py
+├── debug/
+│   └── raw_jd.txt             # Temporary captured JD for inspection
+├── tests/
 │   ├── rules/
 │   ├── ingestion/
 │   ├── insights/
@@ -141,6 +149,9 @@ frontend/ghosthire-ui/
 }
 ```
 
+Note:
+All analysis now runs on JDContext (structured representation). Even pasted text is normalized and parsed before scoring.
+
 ---
 
 ## Local Development
@@ -177,7 +188,7 @@ http://localhost:3000
 
 ## Testing
 
-All backend logic is covered via automated tests.
+Backend functionality is validated using pytest with coverage support, including ingestion, parsing, and analysis engine layers.
 
 ```bash
 cd backend
@@ -193,21 +204,23 @@ pytest --cov=analyzer --cov-report=term-missing
 
 ## Design Constraints
 
-- No scraping logic in the frontend
-- No rule inter-dependencies
-- Analysis engine operates only on normalized text
-- Ingestion failures do not affect analysis stability
-- UI changes must not require backend refactors
+- No scraping logic in frontend
+- Rules do not depend on each other
+- Analysis engine operates ONLY on JDContext (not raw strings)
+- Ingestion failures never crash analysis
+- Rule failures never crash the engine
+- Frontend remains a stateless consumer
 
 ---
 
 ## Roadmap
 
-- Domain-specific JD extractors
-- Context-aware semantic rules
-- Embedding-based similarity detection
-- PDF and document ingestion
-- Rule confidence weighting and calibration
+- Advanced parsing heuristics & ML-assisted extraction
+- Domain-specific JD extractors (LinkedIn, Indeed, Naukri, etc.)
+- Context-aware semantic fraud rules
+- Embedding-based copy/paste similarity detection
+- PDF & document ingestion pipeline
+- Confidence calibration across rules
 
 ---
 
