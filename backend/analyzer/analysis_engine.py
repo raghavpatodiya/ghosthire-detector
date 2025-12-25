@@ -21,23 +21,38 @@ from analyzer.rules.urgency_density import urgency_density_rule
 from analyzer.rules.language_inconsistency import language_inconsistency_rule
 from analyzer.rules.copy_paste_jd import copy_paste_jd_rule
 
+# structured JD context
+try:
+    from analyzer.parsing.schema import JDContext
+except Exception:
+    JDContext = None
+
 # insights (NON-fraud)
 from analyzer.insights.skill_extractor import extract_skills
 
 
-def run_all_rules(job_text: str) -> Dict:
+def run_all_rules(jd_context) -> Dict:
     """
-    Runs fraud detection rules and insights on normalized job text.
-    Assumes input is already cleaned and ready for analysis.
+    NEW Analysis Engine Entry Point
+
+    Accepts:
+    - JDContext ONLY
+
+    Legacy raw-text mode is intentionally removed.
+    Product will temporarily break for plaintext inputs
+    until all rules are migrated to work off structured parsing.
     """
-    if not job_text:
+
+    if not JDContext or not isinstance(jd_context, JDContext):
         return {
             "rule_score": 0.0,
-            "reasons": [],
+            "reasons": ["Invalid analysis input: JDContext required"],
             "insights": {
                 "skills": {"skills_found": [], "skill_count": 0}
             }
         }
+
+    raw_text = jd_context.raw_text
 
     rules = [
         urgent_language_rule,
@@ -59,18 +74,19 @@ def run_all_rules(job_text: str) -> Dict:
 
     for rule in rules:
         try:
-            result = rule(job_text)
+            result = rule(jd_context)
             total_score += result.get("score", 0.0)
 
             if result.get("reason"):
                 reasons.append(result["reason"])
+
         except Exception:
-            # rule failure must never break analysis
+            # A single faulty rule must never crash analysis
             continue
 
     # positive insight extraction
     try:
-        skills_insight = extract_skills(job_text)
+        skills_insight = extract_skills(raw_text or "")
     except Exception:
         skills_insight = {"skills_found": [], "skill_count": 0}
 
