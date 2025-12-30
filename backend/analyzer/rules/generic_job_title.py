@@ -1,24 +1,37 @@
 from typing import Dict
 from analyzer.parsing.schema import JDContext
+
+
 def generic_job_title_rule(jd_context: JDContext) -> Dict:
     """
     Flags vague / non-specific job titles which are common in scam postings.
-    Works ONLY with JDContext now.
+    Works ONLY with JDContext structured pipeline.
+
+    Improvements vs older version:
+    - Uses structured JDContext safely
+    - Uses fallback to raw text but prioritizes parsed title
+    - Reduces false positives when parsing confidence is low
+    - Strong + weak signals separated
     """
 
     if not isinstance(jd_context, JDContext):
         return {"score": 0.0, "reason": None}
 
-    title = (jd_context.job.title or "").lower()
+    title = (jd_context.job.title or "").lower().strip()
     raw = (jd_context.raw_text or "").lower()
 
+    # ---------------------------
+    # No title extracted at all
+    # ---------------------------
     if not title:
         return {
             "score": 0.5,
             "reason": "Job post does not specify a clear job title"
         }
 
-    # Very generic scammy job titles
+    # ---------------------------
+    # Strong scammy / generic title patterns
+    # ---------------------------
     strong_generic = [
         "work from home job",
         "easy job",
@@ -33,10 +46,21 @@ def generic_job_title_rule(jd_context: JDContext) -> Dict:
         "back office job",
         "online job",
         "domestic job",
-        "part time earning"
+        "part time earning",
+        "earn money",
+        "income opportunity"
     ]
 
-    # Weak generic naming
+    for g in strong_generic:
+        if g in title or g in raw:
+            return {
+                "score": 0.9,
+                "reason": "Job title appears overly generic and commonly used in scam postings"
+            }
+
+    # ---------------------------
+    # Weak – still suspicious, but not always scammy
+    # ---------------------------
     weak_generic = [
         "multiple openings",
         "hiring for various roles",
@@ -48,27 +72,21 @@ def generic_job_title_rule(jd_context: JDContext) -> Dict:
         "great opportunity"
     ]
 
-    # Strong hits
-    for g in strong_generic:
-        if g in title or g in raw:
-            return {
-                "score": 0.85,
-                "reason": "Job title appears overly generic and commonly used in scam postings"
-            }
-
-    # Weak hits
     for g in weak_generic:
         if g in title or g in raw:
             return {
-                "score": 0.55,
+                "score": 0.6,
                 "reason": "Job title is vague and not role-specific"
             }
 
-    # Title must contain some profession / function
+    # ---------------------------
+    # Must at least include a meaningful profession indicator
+    # ---------------------------
     meaningful_keywords = [
-        "engineer", "developer", "designer", "analyst", "manager", "consultant",
-        "specialist", "scientist", "architect", "administrator", "executive",
-        "sales", "marketing", "support", "technician"
+        "engineer", "developer", "designer", "analyst", "manager",
+        "consultant", "specialist", "scientist", "architect",
+        "administrator", "executive", "technician",
+        "sales", "marketing", "support", "accountant", "hr"
     ]
 
     if not any(k in title for k in meaningful_keywords):

@@ -2,20 +2,28 @@ from typing import Dict
 import re
 from analyzer.parsing.schema import JDContext
 
+
 def copy_paste_jd_rule(jd_context: JDContext) -> Dict:
     """
-    Detects signs that the JD is copy‑pasted, templated,
-    or borrowed from unrelated sources.
+    Detects signals that the JD is copy‑pasted, templated, or reused.
     Works ONLY with JDContext now.
+
+    Improvements vs old version:
+    - Uses structured company + role context if available
+    - Safer repetition thresholds
+    - Avoids falsely penalizing normal boilerplate HR language
     """
 
     if not isinstance(jd_context, JDContext):
         return {"score": 0.0, "reason": None}
 
-    text = (jd_context.raw_text or "")
+    text = (jd_context.raw_text or "").strip()
+    if not text:
+        return {"score": 0.0, "reason": None}
+
     lower = text.lower()
 
-    # ----------------- Strong plagiarism indicators -----------------
+    # ----------------- Strong plagiarism / redistribution hints -----------------
     strong_indicators = [
         "do not copy",
         "copyright",
@@ -30,16 +38,18 @@ def copy_paste_jd_rule(jd_context: JDContext) -> Dict:
     if any(p in lower for p in strong_indicators):
         return {
             "score": 0.9,
-            "reason": "Job description shows strong signs of copied or redistributed content"
+            "reason": "Job description explicitly indicates copied / redistributed content"
         }
 
     # ----------------- Repeated Content Detection -----------------
     lines = [l.strip() for l in text.split("\n") if l.strip()]
-    repeated_count = 0
+
+    # Ignore very short boilerplate lines
+    lines = [l for l in lines if len(l) > 25]
 
     seen = {}
     for line in lines:
-        norm = line.lower()
+        norm = re.sub(r"\s+", " ", line.lower())
         seen[norm] = seen.get(norm, 0) + 1
 
     repeated_lines = [l for l, c in seen.items() if c >= 3]
@@ -47,40 +57,49 @@ def copy_paste_jd_rule(jd_context: JDContext) -> Dict:
     if len(repeated_lines) >= 3:
         return {
             "score": 0.8,
-            "reason": "Job description repeats identical content unusually often"
+            "reason": "Job description repeats large sections, suggesting reused content"
         }
 
     if len(repeated_lines) == 2:
         return {
             "score": 0.6,
-            "reason": "Job description contains duplicated sections suggesting copy-paste"
+            "reason": "Job description contains duplicated sections indicating possible copy-paste"
         }
 
-    # ----------------- Multiple Company Identity Signals -----------------
-    possible_company_mentions = re.findall(r"\b[A-Z][A-Za-z]{2,}\b", text)
-    unique_tokens = set(possible_company_mentions)
+    # ----------------- Multiple Company / Brand Confusion -----------------
+    company_name = (jd_context.company.name or "").strip()
+    company_name_lower = company_name.lower()
 
-    if len(unique_tokens) >= 4 and not jd_context.company.name:
+    # Tokens starting capital letter (potential brand names)
+    tokens = re.findall(r"\b[A-Z][A-Za-z]{2,}\b", text)
+    tokens = [t for t in tokens if t.lower() != company_name_lower]
+
+    unique_tokens = set(tokens)
+
+    # Only flag if there are *clearly unrelated* brand/company references
+    if len(unique_tokens) >= 5 and not company_name:
         return {
             "score": 0.55,
-            "reason": "Multiple unrelated brand/company names detected, suggesting reused JD content"
+            "reason": "Multiple unrelated company/brand names suggest reused JD from other sources"
         }
 
-    # ----------------- Template / Generic Boilerplate -----------------
+    # ----------------- Template / Boilerplate Style -----------------
     template_phrases = [
         "we are one of the leading",
-        "we are among the top companies",
         "renowned organization",
         "prestigious company",
         "world class organization",
         "industry leading company",
+        "among the top companies",
         "number one company",
     ]
 
-    if sum(1 for p in template_phrases if p in lower) >= 2:
+    boilerplate_hits = sum(1 for p in template_phrases if p in lower)
+
+    if boilerplate_hits >= 3:
         return {
             "score": 0.45,
-            "reason": "Job description appears to use generic boilerplate template language"
+            "reason": "JD appears heavily templated with generic promotional language"
         }
 
     return {"score": 0.0, "reason": None}

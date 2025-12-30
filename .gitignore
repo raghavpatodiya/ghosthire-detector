@@ -23,4 +23,4 @@ sample-jd.html
 
 backend/.coverage
 
-backend/debug/*
+# backend/debug/*

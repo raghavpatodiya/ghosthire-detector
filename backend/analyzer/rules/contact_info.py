@@ -17,9 +17,21 @@ def poor_contact_info_rule(jd_context: JDContext) -> Dict:
 
     company_name = (jd_context.company.name or "").lower()
 
-    # -------- Extract contacts --------
-    emails: List[str] = re.findall(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", text)
-    phones: List[str] = re.findall(r"\+?\d[\d\s\-]{8,}\d", text)
+    # -------- Extract contacts (prefer structured, fallback to regex) --------
+    emails: List[str] = []
+    phones: List[str] = []
+
+    if getattr(jd_context, "emails", None):
+        emails = list(set(jd_context.emails))
+
+    if not emails:
+        emails = re.findall(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", text)
+
+    if getattr(jd_context, "phones", None):
+        phones = list(set(jd_context.phones))
+
+    if not phones:
+        phones = re.findall(r"\+?\d[\d\s\-]{8,}\d", text)
 
     # -------- Generic free email domains --------
     generic_domains = [
@@ -55,22 +67,22 @@ def poor_contact_info_rule(jd_context: JDContext) -> Dict:
         }
 
     # -------- Corporate domain but mismatch with company --------
-    if emails and company_name:
+    if emails and company_name and len(company_name) > 3:
         corporate_emails = [e for e in emails if not any(d in e.lower() for d in generic_domains)]
         if corporate_emails:
+            normalized_company = company_name.replace(" ", "")
             domains = [e.split("@")[1].lower() for e in corporate_emails]
-            # if none of the domains resemble the company name
-            if not any(company_name.replace(" ", "") in d for d in domains):
+
+            # allow partial similarity to reduce false positives
+            domain_mismatch = not any(
+                normalized_company in d or d.split(".")[0] in normalized_company
+                for d in domains
+            )
+
+            if domain_mismatch:
                 return {
                     "score": 0.55,
                     "reason": "Corporate email domain does not appear related to stated company"
                 }
-
-    # -------- No contact provided at all --------
-    if not emails and not phones:
-        return {
-            "score": 0.4,
-            "reason": "Job post does not provide any verifiable contact channel"
-        }
 
     return {"score": 0.0, "reason": None}
