@@ -68,6 +68,69 @@ Returned as structured metadata and does not influence fraud risk score.
 
 ---
 
+## Ingestion Layer (Enhanced)
+
+The ingestion pipeline has been upgraded to behave closer to real-world production systems.
+
+**Responsibilities**
+- Fetch trusted HTML from public job URLs
+- Apply realistic headers & redirects
+- Validate content-type & encoding
+- Extract readable job content
+- Normalize and clean text
+- Fail gracefully without crashing the pipeline
+
+**Pipeline**
+```
+URL → fetch_url_content()  
+       ↓  
+HTML → extract_job_description()  
+       ↓  
+Text → normalize_job_description()  
+       ↓  
+debug/raw_jd.txt (captured for inspection)
+```
+
+Scraping never lives in frontend.  
+Failures return clear API errors instead of breaking analysis.
+
+---
+
+## Parsing Layer (Structured JDContext)
+
+All analysis is now **fully structured**.  
+No fraud rule consumes raw text anymore — everything runs on parsed semantics.
+
+**The parser now extracts:**
+- 📍 Location + Remote / Hybrid / On‑site
+- 🧠 Experience years (min / max where available)
+- 💼 Employment type (Full‑time / Contract / Internship)
+- 🏁 Hiring process structure (steps, interviews, shortcuts)
+- 💸 Salary structure (amount, range, currency, frequency)
+- 🏢 Company inference heuristics
+- 📧 Verifiable emails
+- Confidence scores per attribute
+- Overall parsing confidence baseline
+
+**Architecture**
+```
+Raw JD Text
+ ↓
+Parsing Detectors
+ ↓
+JDContext (structured representation)
+ ↓
+Fraud Rules + Insights
+```
+
+This significantly improves:
+- Accuracy
+- Explainability
+- Real‑world reliability
+- Extensibility (future ML & domain‑specific extractors)
+
+---
+
 ## Backend Layout
 
 ```
@@ -82,10 +145,19 @@ backend/
 │   │   ├── jd_extractor.py
 │   │   └── normalizer.py
 │   └── parsing/
-│       ├── jd_parser.py       # Converts text → JDContext
-│       └── schema.py
+│       ├── jd_parser.py           # Converts text → JDContext
+│       ├── schema.py              # JDContext + structured models
+│       ├── detectors/             # Individual semantic extractors
+│       │   ├── experience_detector.py
+│       │   ├── location_detector.py
+│       │   ├── employment_type_detector.py
+│       │   ├── hiring_flow_detector.py
+│       │   └── salary_detector.py
+│       └── utils.py                 # shared parsing helpers
 ├── debug/
 │   └── raw_jd.txt             # Temporary captured JD for inspection
+├── utils/
+│   └── loc_counter.py         # LOC calculation (backend + frontend)
 ├── tests/
 │   ├── rules/
 │   ├── ingestion/
