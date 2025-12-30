@@ -57,7 +57,17 @@ def analyze():
     # -------- Case 2: JD fetched via URL --------
     if job_url:
         try:
-            html = fetch_url_content(job_url)
+            fetch_result = fetch_url_content(job_url)
+
+            if not fetch_result.get("success"):
+                return jsonify({
+                    "error": "Failed to fetch job page",
+                    "reason": fetch_result.get("reason"),
+                    "status_code": fetch_result.get("status_code")
+                }), 400
+
+            html = fetch_result.get("html") or ""
+
             extracted_text = extract_job_description(html)
             normalized_text = normalize_job_description(extracted_text)
 

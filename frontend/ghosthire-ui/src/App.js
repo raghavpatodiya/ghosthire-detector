@@ -101,7 +101,7 @@ function App() {
     <div className="app">
       <h2>GhostHire Detector</h2>
       <p style={{ opacity: 0.7, marginTop: "4px" }}>
-        1 LOC at a time to improve it — currently at...
+        1 LOC at a time, currently at...
       </p>
       <Odometer value={locData.total_loc} />
       
